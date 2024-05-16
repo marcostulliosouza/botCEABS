@@ -189,6 +189,7 @@ class MyApp:
                 self.running_flag = True  # Inicia o loop
 
                 # Desativa o widget de combobox
+                self.entry_tipo_produto.config(state="disabled")
                 self.entry_tipo_jiga.config(state="disabled")
 
                 # Inicia um thread separado para executar o loop continuamente
