@@ -15,7 +15,7 @@ executables = [Executable("botLog.py", base="Win32GUI")]
 
 setup(
     name="botLog",
-    version="2.2.0",
+    version="2.3.0",
     options={
         "build_exe": {
             "packages": modules + packages,

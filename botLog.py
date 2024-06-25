@@ -11,6 +11,7 @@ from tkinter import messagebox
 import threading
 import configparser
 import csv
+import logging
 """
 v 2.0.1
 
@@ -30,6 +31,8 @@ v 2.2.0
 
 """
 __version__ = '2.2.0'
+# Configurar logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 class MyApp:
     def __init__(self, root):
         self.root = root
@@ -196,7 +199,8 @@ class MyApp:
                 self.thread_execucao = threading.Thread(target=self.executar_continuamente, daemon=True).start()
         else:
             messagebox.showerror("Erro",
-                                 "O arquivo originado pelo software CEABS não foi encontrado. Certifique-se de que o arquivo tenha sido gerado após os testes.")
+                                 "O arquivo originado pelo software CEABS não foi encontrado. "
+                                 "Certifique-se de que o arquivo tenha sido gerado após os testes.")
 
 
 
@@ -272,13 +276,11 @@ def obter_ultima_posicao_lida():
     except Exception as e:
         print(f"Erro ao obter a última posição lida: {e}")
         return 0
-
 def salvar_ultima_posicao_lida(posicao):
     caminho_arquivo_controle = os.path.join(app.controle_path, 'controlposition.txt')
 
     with open(caminho_arquivo_controle, 'w') as f:
         f.write(str(posicao))
-
 def obter_caminho_arquivo_original():
     diretorio_origem = app.origem_path
 
@@ -291,12 +293,9 @@ def obter_caminho_arquivo_original():
         return caminho_arquivo
     else:
         return None
-
 def verificar_existencia_arquivo_original():
     caminho_arquivo = obter_caminho_arquivo_original()
     return caminho_arquivo is not None
-
-
 def ler_arquivo_original():
     caminho_arquivo = obter_caminho_arquivo_original()
 
@@ -305,7 +304,6 @@ def ler_arquivo_original():
         return df
     else:
         return None
-
 def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
     if ultima_posicao >= len(df):
         return
@@ -578,6 +576,50 @@ def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
                 sufixo_arquivo = '_6268'
             elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
                 sufixo_arquivo = '_6269'
+
+        elif app.entry_tipo_jiga.get() == '000998':
+            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
+                continue
+            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6379'
+            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6380'
+            elif '="V1_TEST"' in row and row['="V1_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6381'
+            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6382'
+            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6383'
+            elif '="V5_TEST"' in row and row['="V5_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6384'
+            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6385'
+            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6386'
+            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6387'
+            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6388'
+            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6389'
+            elif '="1-WIRE_TEST"' in row and row['="1-WIRE_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6390'
+            elif '="GSM_TEST"' in row and row['="GSM_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6391'
+            elif '="GPS_TEST"' in row and row['="GPS_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6392'
+            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6393'
+            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6394'
+            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6395'
+            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6396'
+            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6397'
+            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6398'
         else:
             messagebox.showerror("Erro","Não foi identificado a jiga")
 
@@ -625,16 +667,12 @@ def copiar_arquivo_para_jiga(df, diretorio_destino):
             app.adicionar_info_e_rolar(mensagem_erro)
 def limpar_ultima_posicao_lida():
     salvar_ultima_posicao_lida(0)
-
-
 def encerrar_programa(signal, frame):
     resposta = messagebox.askyesno("Encerrar Programa", "Tem certeza que deseja encerrar o programa?")
     if resposta:
         observer.stop()
         observer.join()
         root.destroy()
-
-
 class FileModifiedHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.is_directory:
@@ -643,8 +681,6 @@ class FileModifiedHandler(FileSystemEventHandler):
             print(f'Arquivo {event.src_path} foi modificado. Esperando antes de executar o script...')
             time.sleep(1)
             app.executar_programa()
-
-
 def executar_script():
     if verificar_existencia_arquivo_original():
         df_original = ler_arquivo_original()
@@ -652,8 +688,6 @@ def executar_script():
         if df_original is not None:
             ultima_posicao = obter_ultima_posicao_lida()
             processar_linhas_novas(df_original, ultima_posicao, app.destino_path)
-
-
 if __name__ == "__main__":
     root = tk.Tk()
     app = MyApp(root)
