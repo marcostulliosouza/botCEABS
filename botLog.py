@@ -30,7 +30,15 @@ v 2.2.0
 - Criado interface para alternar entre produto
 
 """
-__version__ = '2.2.0'
+
+"""
+
+v 3.0.0
+
+- Adicionado novas jigas
+
+"""
+__version__ = '3.0.0'
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 class MyApp:
@@ -620,6 +628,95 @@ def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
                 sufixo_arquivo = '_6397'
             elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
                 sufixo_arquivo = '_6398'
+
+        elif app.entry_tipo_jiga.get() == '001001':
+            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
+                continue
+            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6420'
+            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6421'
+            elif '="V1_TEST"' in row and row['="V1_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6422'
+            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6423'
+            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6424'
+            elif '="V5_TEST"' in row and row['="V5_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6425'
+            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6426'
+            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6427'
+            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6428'
+            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6429'
+            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6430'
+            elif '="1-WIRE_TEST"' in row and row['="1-WIRE_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6431'
+            elif '="GSM_TEST"' in row and row['="GSM_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6432'
+            elif '="GPS_TEST"' in row and row['="GPS_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6433'
+            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6434'
+            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6435'
+            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6436'
+            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6437'
+            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6438'
+            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6439'
+
+        elif app.entry_tipo_jiga.get() == '001001':
+            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
+                continue
+            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6440'
+            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6441'
+            elif '="V1_TEST"' in row and row['="V1_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6442'
+            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6443'
+            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6444'
+            elif '="V5_TEST"' in row and row['="V5_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6445'
+            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6446'
+            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6447'
+            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6448'
+            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6449'
+            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6450'
+            elif '="1-WIRE_TEST"' in row and row['="1-WIRE_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6451'
+            elif '="GSM_TEST"' in row and row['="GSM_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6452'
+            elif '="GPS_TEST"' in row and row['="GPS_TEST"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6453'
+            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6454'
+            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6455'
+            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6456'
+            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6457'
+            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6458'
+            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
+                sufixo_arquivo = '_6459'
+
         else:
             messagebox.showerror("Erro","Não foi identificado a jiga")
 
