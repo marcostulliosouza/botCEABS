@@ -38,7 +38,17 @@ v 3.0.0
 - Adicionado novas jigas
 
 """
-__version__ = '3.0.0'
+
+
+"""
+
+v 3.0.1
+25/07/24
+- Otimizado o código 
+- Adicionado uma caixa de pergunta para salvar logs de placas reprovadas
+
+"""
+__version__ = '3.0.1'
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 class MyApp:
