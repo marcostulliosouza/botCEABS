@@ -38,7 +38,25 @@ v 3.0.0
 - Adicionado novas jigas
 
 """
-__version__ = '3.0.0'
+
+
+"""
+
+v 3.0.1
+25/07/24
+- Otimizado o código 
+- Adicionado uma caixa de pergunta para salvar logs de placas reprovadas
+
+"""
+
+"""
+
+v 4.0.0 
+25/07/24
+- Adicionado a jiga 1004
+
+"""
+__version__ = '4.0.0'
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 class MyApp:
@@ -209,9 +227,6 @@ class MyApp:
             messagebox.showerror("Erro",
                                  "O arquivo originado pelo software CEABS não foi encontrado. "
                                  "Certifique-se de que o arquivo tenha sido gerado após os testes.")
-
-
-
     def executar_continuamente(self):
         try:
             while self.running_flag:
@@ -273,6 +288,16 @@ class MyApp:
             self.adicionar_info("Configurações salvas.")
         else:
             messagebox.showerror("Erro", "Um ou mais diretórios especificados não existem.")
+    def confirmar_salvar_arquivo(self, placa_reprovada):
+        """
+            SE CASO REPROVAR PERGUNTAR SE QUER SAVAR O LOG
+            TULLIO - 23/07/2024
+        """
+        self.resposta = messagebox.askyesno(
+            'Placa Reprovada',
+            f'Deseja salvar o log de placa reprova: {placa_reprovada}?'
+        )
+        return self.resposta
 def obter_ultima_posicao_lida():
     caminho_arquivo_controle = os.path.join(app.controle_path, 'controlposition.txt')
 
@@ -316,422 +341,267 @@ def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
     if ultima_posicao >= len(df):
         return
 
-    df_novas = df.iloc[ultima_posicao:]
+    tipo_jiga = app.entry_tipo_jiga.get()
+    sufixo_map = {
+        '000977': {
+            '="LoRa_ID_STATUS"': '_6144',
+            '="POWER_TEST"': '_6145',
+            '="V3_TEST"': '_6146',
+            '="V4_TEST"': '_6147',
+            '="UART_TEST"': '_6148',
+            '="FIRMWARE_VERSION_TEST"': '_6149',
+            '="GPIO_TEST"': '_6150',
+            '="ADC_TEST"': '_6151',
+            '="G-SENSOR_TEST"': '_6152',
+            '="LoRa_TEST"': '_6153',
+            '="SETUP_DOWNLOAD"': '_6154',
+            '="LoRa_APP_EUI_STATUS"': '_6155',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6156',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6157',
+            '="LoRa_DEV_EUI_STATUS"': '_6158',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6159'
+        },
+        '000978': {
+            '="LoRa_ID_STATUS"': '_6161',
+            '="POWER_TEST"': '_6162',
+            '="V3_TEST"': '_6163',
+            '="V4_TEST"': '_6164',
+            '="UART_TEST"': '_6165',
+            '="FIRMWARE_VERSION_TEST"': '_6166',
+            '="GPIO_TEST"': '_6167',
+            '="ADC_TEST"': '_6168',
+            '="G-SENSOR_TEST"': '_6169',
+            '="LoRa_TEST"': '_6170',
+            '="SETUP_DOWNLOAD"': '_6171',
+            '="LoRa_APP_EUI_STATUS"': '_6172',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6173',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6174',
+            '="LoRa_DEV_EUI_STATUS"': '_6175',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6176'
+        },
+        '000981': {
+            '="LoRa_ID_STATUS"': '_6178',
+            '="POWER_TEST"': '_6179',
+            '="V3_TEST"': '_6180',
+            '="V4_TEST"': '_6181',
+            '="UART_TEST"': '_6182',
+            '="FIRMWARE_VERSION_TEST"': '_6183',
+            '="GPIO_TEST"': '_6184',
+            '="ADC_TEST"': '_6185',
+            '="G-SENSOR_TEST"': '_6186',
+            '="LoRa_TEST"': '_6187',
+            '="SETUP_DOWNLOAD"': '_6188',
+            '="LoRa_APP_EUI_STATUS"': '_6189',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6190',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6191',
+            '="LoRa_DEV_EUI_STATUS"': '_6192',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6193'
+        },
+        '000985': {
+            '="LoRa_ID_STATUS"': '_6195',
+            '="POWER_TEST"': '_6196',
+            '="V3_TEST"': '_6197',
+            '="V4_TEST"': '_6198',
+            '="UART_TEST"': '_6199',
+            '="FIRMWARE_VERSION_TEST"': '_6200',
+            '="GPIO_TEST"': '_6201',
+            '="ADC_TEST"': '_6202',
+            '="G-SENSOR_TEST"': '_6203',
+            '="LoRa_TEST"': '_6204',
+            '="SETUP_DOWNLOAD"': '_6205',
+            '="LoRa_APP_EUI_STATUS"': '_6206',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6207',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6208',
+            '="LoRa_DEV_EUI_STATUS"': '_6209',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6210'
+        },
+        '000986': {
+            '="LoRa_ID_STATUS"': '_6212',
+            '="POWER_TEST"': '_6213',
+            '="V3_TEST"': '_6214',
+            '="V4_TEST"': '_6215',
+            '="UART_TEST"': '_6216',
+            '="FIRMWARE_VERSION_TEST"': '_6217',
+            '="GPIO_TEST"': '_6218',
+            '="ADC_TEST"': '_6219',
+            '="G-SENSOR_TEST"': '_6220',
+            '="LoRa_TEST"': '_6221',
+            '="SETUP_DOWNLOAD"': '_6222',
+            '="LoRa_APP_EUI_STATUS"': '_6223',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6224',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6225',
+            '="LoRa_DEV_EUI_STATUS"': '_6226',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6227'
+        },
+        '000988': {
+            '="LoRa_ID_STATUS"': '_6230',
+            '="POWER_TEST"': '_6231',
+            '="V1_TEST"': '_6232',
+            '="V3_TEST"': '_6233',
+            '="V4_TEST"': '_6234',
+            '="V5_TEST"': '_6235',
+            '="UART_TEST"': '_6236',
+            '="FIRMWARE_VERSION_TEST"': '_6237',
+            '="GPIO_TEST"': '_6238',
+            '="ADC_TEST"': '_6239',
+            '="LoRa_TEST"': '_6240',
+            '="1-WIRE_TEST"': '_6241',
+            '="GSM_TEST"': '_6242',
+            '="GPS_TEST"': '_6243',
+            '="SETUP_DOWNLOAD"': '_6244',
+            '="LoRa_APP_EUI_STATUS"': '_6245',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6246',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6247',
+            '="LoRa_DEV_EUI_STATUS"': '_6248',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6249'
+        },
+        '000989': {
+            '="LoRa_ID_STATUS"': '_6250',
+            '="POWER_TEST"': '_6251',
+            '="V1_TEST"': '_6252',
+            '="V3_TEST"': '_6253',
+            '="V4_TEST"': '_6254',
+            '="V5_TEST"': '_6255',
+            '="UART_TEST"': '_6256',
+            '="FIRMWARE_VERSION_TEST"': '_6257',
+            '="GPIO_TEST"': '_6258',
+            '="ADC_TEST"': '_6259',
+            '="LoRa_TEST"': '_6260',
+            '="1-WIRE_TEST"': '_6261',
+            '="GSM_TEST"': '_6262',
+            '="GPS_TEST"': '_6263',
+            '="SETUP_DOWNLOAD"': '_6264',
+            '="LoRa_APP_EUI_STATUS"': '_6265',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6266',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6267',
+            '="LoRa_DEV_EUI_STATUS"': '_6268',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6269'
+        },
+        '000998': {
+            '="LoRa_ID_STATUS"': '_6379',
+            '="POWER_TEST"': '_6380',
+            '="V1_TEST"': '_6381',
+            '="V3_TEST"': '_6382',
+            '="V4_TEST"': '_6383',
+            '="V5_TEST"': '_6384',
+            '="UART_TEST"': '_6385',
+            '="FIRMWARE_VERSION_TEST"': '_6386',
+            '="GPIO_TEST"': '_6387',
+            '="ADC_TEST"': '_6388',
+            '="LoRa_TEST"': '_6389',
+            '="1-WIRE_TEST"': '_6390',
+            '="GSM_TEST"': '_6391',
+            '="GPS_TEST"': '_6392',
+            '="SETUP_DOWNLOAD"': '_6393',
+            '="LoRa_APP_EUI_STATUS"': '_6394',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6395',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6396',
+            '="LoRa_DEV_EUI_STATUS"': '_6397',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6398'
+        },
+        '001001': {
+            '="LoRa_ID_STATUS"': '_6420',
+            '="POWER_TEST"': '_6421',
+            '="V1_TEST"': '_6422',
+            '="V3_TEST"': '_6423',
+            '="V4_TEST"': '_6424',
+            '="V5_TEST"': '_6425',
+            '="UART_TEST"': '_6426',
+            '="FIRMWARE_VERSION_TEST"': '_6427',
+            '="GPIO_TEST"': '_6428',
+            '="ADC_TEST"': '_6429',
+            '="LoRa_TEST"': '_6430',
+            '="1-WIRE_TEST"': '_6431',
+            '="GSM_TEST"': '_6432',
+            '="GPS_TEST"': '_6433',
+            '="SETUP_DOWNLOAD"': '_6434',
+            '="LoRa_APP_EUI_STATUS"': '_6435',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6436',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6437',
+            '="LoRa_DEV_EUI_STATUS"': '_6438',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6439'
+        },
+        '001002': {
+            '="LoRa_ID_STATUS"': '_6440',
+            '="POWER_TEST"': '_6441',
+            '="V1_TEST"': '_6442',
+            '="V3_TEST"': '_6443',
+            '="V4_TEST"': '_6444',
+            '="V5_TEST"': '_6445',
+            '="UART_TEST"': '_6446',
+            '="FIRMWARE_VERSION_TEST"': '_6447',
+            '="GPIO_TEST"': '_6448',
+            '="ADC_TEST"': '_6449',
+            '="LoRa_TEST"': '_6450',
+            '="1-WIRE_TEST"': '_6451',
+            '="GSM_TEST"': '_6452',
+            '="GPS_TEST"': '_6453',
+            '="SETUP_DOWNLOAD"': '_6454',
+            '="LoRa_APP_EUI_STATUS"': '_6455',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6456',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6457',
+            '="LoRa_DEV_EUI_STATUS"': '_6458',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6459'
+        },
+        '001004': {
+            '="LoRa_ID_STATUS"': '_6460',
+            '="POWER_TEST"': '_6461',
+            '="V1_TEST"': '_6462',
+            '="V3_TEST"': '_6463',
+            '="V4_TEST"': '_6464',
+            '="V5_TEST"': '_6465',
+            '="UART_TEST"': '_6466',
+            '="FIRMWARE_VERSION_TEST"': '_6467',
+            '="GPIO_TEST"': '_6468',
+            '="ADC_TEST"': '_6469',
+            '="LoRa_TEST"': '_6470',
+            '="1-WIRE_TEST"': '_6471',
+            '="GSM_TEST"': '_6472',
+            '="GPS_TEST"': '_6473',
+            '="SETUP_DOWNLOAD"': '_6474',
+            '="LoRa_APP_EUI_STATUS"': '_6475',
+            '="LoRa_APP_SESSION_KEY_STATUS"': '_6476',
+            '="LoRa_DEV_ADDRESS_STATUS"': '_6477',
+            '="LoRa_DEV_EUI_STATUS"': '_6478',
+            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6479'
+        }
+    }
 
+    df_novas = df.iloc[ultima_posicao:]
     for _, row in df_novas.iterrows():
         sufixo_arquivo = '_0000'
-        # Verifica se a DT-JIGA é igual a 000977
-        if app.entry_tipo_jiga.get() == '000977':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6144'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6145'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6146'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6147'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6148'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6149'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6150'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6151'
-            elif '="G-SENSOR_TEST"' in row and row['="G-SENSOR_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6152'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6153'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6154'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6155'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6156'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6157'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6158'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6159'
-        elif app.entry_tipo_jiga.get() == '000978':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6161'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6162'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6163'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6164'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6165'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6166'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6167'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6168'
-            elif '="G-SENSOR_TEST"' in row and row['="G-SENSOR_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6169'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6170'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6171'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6172'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6173'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6174'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6175'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6176'
-        elif app.entry_tipo_jiga.get() == '000981':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6178'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6179'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6180'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6181'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6182'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6183'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6184'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6185'
-            elif '="G-SENSOR_TEST"' in row and row['="G-SENSOR_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6186'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6187'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6188'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6189'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6190'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6191'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6192'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6193'
-        elif app.entry_tipo_jiga.get() == '000985':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6195'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6196'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6197'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6198'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6199'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6200'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6201'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6202'
-            elif '="G-SENSOR_TEST"' in row and row['="G-SENSOR_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6203'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6204'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6205'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6206'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6207'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6208'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6209'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6210'
-        elif app.entry_tipo_jiga.get() == '000986':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6212'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6213'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6214'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6215'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6216'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6217'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6218'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6219'
-            elif '="G-SENSOR_TEST"' in row and row['="G-SENSOR_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6220'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6221'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6222'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6223'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6224'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6225'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6226'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6227'
-
-        elif app.entry_tipo_jiga.get() == '000988':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6230'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6231'
-            elif '="V1_TEST"' in row and row['="V1_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6232'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6233'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6234'
-            elif '="V5_TEST"' in row and row['="V5_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6235'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6236'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6237'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6238'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6239'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6240'
-            elif '="1-WIRE_TEST"' in row and row['="1-WIRE_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6241'
-            elif '="GSM_TEST"' in row and row['="GSM_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6242'
-            elif '="GPS_TEST"' in row and row['="GPS_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6243'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6244'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6245'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6246'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6247'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6248'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6249'
-
-        elif app.entry_tipo_jiga.get() == '000989':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6250'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6251'
-            elif '="V1_TEST"' in row and row['="V1_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6252'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6253'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6254'
-            elif '="V5_TEST"' in row and row['="V5_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6255'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6256'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6257'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6258'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6259'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6260'
-            elif '="1-WIRE_TEST"' in row and row['="1-WIRE_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6261'
-            elif '="GSM_TEST"' in row and row['="GSM_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6262'
-            elif '="GPS_TEST"' in row and row['="GPS_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6263'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6264'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6265'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6266'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6267'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6268'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6269'
-
-        elif app.entry_tipo_jiga.get() == '000998':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6379'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6380'
-            elif '="V1_TEST"' in row and row['="V1_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6381'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6382'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6383'
-            elif '="V5_TEST"' in row and row['="V5_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6384'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6385'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6386'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6387'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6388'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6389'
-            elif '="1-WIRE_TEST"' in row and row['="1-WIRE_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6390'
-            elif '="GSM_TEST"' in row and row['="GSM_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6391'
-            elif '="GPS_TEST"' in row and row['="GPS_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6392'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6393'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6394'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6395'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6396'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6397'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6398'
-
-        elif app.entry_tipo_jiga.get() == '001001':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6420'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6421'
-            elif '="V1_TEST"' in row and row['="V1_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6422'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6423'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6424'
-            elif '="V5_TEST"' in row and row['="V5_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6425'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6426'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6427'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6428'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6429'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6430'
-            elif '="1-WIRE_TEST"' in row and row['="1-WIRE_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6431'
-            elif '="GSM_TEST"' in row and row['="GSM_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6432'
-            elif '="GPS_TEST"' in row and row['="GPS_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6433'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6434'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6435'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6436'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6437'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6438'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6439'
-
-        elif app.entry_tipo_jiga.get() == '001001':
-            if '="SERIAL_NUMBER_STATUS"' in row and row['="SERIAL_NUMBER_STATUS"'] not in ['="PASS"']:
-                continue
-            elif '="LoRa_ID_STATUS"' in row and row['="LoRa_ID_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6440'
-            elif '="POWER_TEST"' in row and row['="POWER_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6441'
-            elif '="V1_TEST"' in row and row['="V1_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6442'
-            elif '="V3_TEST"' in row and row['="V3_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6443'
-            elif '="V4_TEST"' in row and row['="V4_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6444'
-            elif '="V5_TEST"' in row and row['="V5_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6445'
-            elif '="UART_TEST"' in row and row['="UART_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6446'
-            elif '="FIRMWARE_VERSION_TEST"' in row and row['="FIRMWARE_VERSION_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6447'
-            elif '="GPIO_TEST"' in row and row['="GPIO_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6448'
-            elif '="ADC_TEST"' in row and row['="ADC_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6449'
-            elif '="LoRa_TEST"' in row and row['="LoRa_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6450'
-            elif '="1-WIRE_TEST"' in row and row['="1-WIRE_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6451'
-            elif '="GSM_TEST"' in row and row['="GSM_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6452'
-            elif '="GPS_TEST"' in row and row['="GPS_TEST"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6453'
-            elif '="SETUP_DOWNLOAD"' in row and row['="SETUP_DOWNLOAD"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6454'
-            elif '="LoRa_APP_EUI_STATUS"' in row and row['="LoRa_APP_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6455'
-            elif '="LoRa_APP_SESSION_KEY_STATUS"' in row and row['="LoRa_APP_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6456'
-            elif '="LoRa_DEV_ADDRESS_STATUS"' in row and row['="LoRa_DEV_ADDRESS_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6457'
-            elif '="LoRa_DEV_EUI_STATUS"' in row and row['="LoRa_DEV_EUI_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6458'
-            elif '="LoRa_NTWK_SESSION_KEY_STATUS"' in row and row['="LoRa_NTWK_SESSION_KEY_STATUS"'] not in ['="PASS"']:
-                sufixo_arquivo = '_6459'
-
-        else:
-            messagebox.showerror("Erro","Não foi identificado a jiga")
-
-
+        if tipo_jiga in sufixo_map:
+            for status_col, sufixo in sufixo_map[tipo_jiga].items():
+                if status_col in row and row[status_col] not in ['="PASS"']:
+                    sufixo_arquivo = sufixo
+                    break
         valor_serial_number = row['="SERIAL_NUMBER_VALUE"']
         valor_lora_id = row['="LoRa_ID_VALUE"']
-        numeric_part_serial = ''.join(filter(str.isdigit, valor_serial_number))
-        numeric_part_lora = ''.join(filter(str.isdigit, valor_lora_id))
-        caminho_destino = os.path.join(diretorio_destino, f'{int(numeric_part_serial)}ç{int(numeric_part_lora)}{sufixo_arquivo}.txt')
 
-        with open(caminho_destino, 'w'):
-            pass
+        if valor_serial_number and valor_lora_id and valor_serial_number != '="0"' and valor_lora_id != '="0"':
+            numeric_part_serial = ''.join(filter(str.isdigit, valor_serial_number))
+            numeric_part_lora = ''.join(filter(str.isdigit, valor_lora_id))
+            caminho_destino = os.path.join(diretorio_destino, f'{int(numeric_part_serial)}ç{int(numeric_part_lora)}{sufixo_arquivo}.txt')
 
-        mensagem_info = f'Arquivo gerado em: {caminho_destino}'
-        app.adicionar_info_e_rolar(mensagem_info)
+            # verificar se o resultado é diferente de '_0000'
+            if sufixo_arquivo != '_0000':
+                # perguntar se deseja salvar
+                if app.confirmar_salvar_arquivo(numeric_part_serial):
+                    with open(caminho_destino, 'w'):
+                        pass
+                    # Adicionar mensagem de informação
+                    mensagem_info = f'Arquivo gerado em: {caminho_destino}'
+                    app.adicionar_info_e_rolar(mensagem_info)
+                else:
+                    mensagem_info = f'A placa com o número de série {numeric_part_serial} foi reprovada. '\
+                                    'O log correspondente não foi salvo.'
+                    app.adicionar_info_e_rolar(mensagem_info)
+            else:
+                with open(caminho_destino, 'w'):
+                    pass
+
+                mensagem_info = f'Arquivo gerado em: {caminho_destino}'
+                app.adicionar_info_e_rolar(mensagem_info)
 
     salvar_ultima_posicao_lida(len(df))
     salvar_ultima_posicao_lida(len(df))
