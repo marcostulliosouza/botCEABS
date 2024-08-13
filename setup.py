@@ -1,7 +1,7 @@
 # setup.py
 from cx_Freeze import setup, Executable
 
-# Lista de módulos que você está usando no seu script
+# Lista de módulos que você está usando no seu scriptd
 modules = ["pandas", "datetime", "os", "time", "watchdog", "tkinter", "threading", "configparser", "csv", "shutil"]
 
 # Inclua automaticamente todos os pacotes necessários
