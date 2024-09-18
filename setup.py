@@ -1,7 +1,7 @@
 # setup.py
 from cx_Freeze import setup, Executable
 
-# Lista de módulos que você está usando no seu scriptd
+# Lista de módulos que você está usando no seu script
 modules = ["pandas", "datetime", "os", "time", "watchdog", "tkinter", "threading", "configparser", "csv", "shutil"]
 
 # Inclua automaticamente todos os pacotes necessários
@@ -15,7 +15,7 @@ executables = [Executable("botLog.py", base="Win32GUI")]
 
 setup(
     name="botLog",
-    version="4.0.0",
+    version="4.1.0",
     options={
         "build_exe": {
             "packages": modules + packages,

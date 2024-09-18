@@ -1,6 +1,6 @@
 import shutil
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import time
 from watchdog.observers import Observer
@@ -12,6 +12,7 @@ import threading
 import configparser
 import csv
 import logging
+
 """
 v 2.0.1
 
@@ -39,7 +40,6 @@ v 3.0.0
 
 """
 
-
 """
 
 v 3.0.1
@@ -56,14 +56,25 @@ v 4.0.0
 - Adicionado a jiga 1004
 
 """
-__version__ = '4.0.0'
+
+"""
+V4.1.0
+18/09/24
+- Melhorado a lógica para garantir que se a placa não apresenta falha não deve ser gerado
+o questionamento se deseja retestar a plata
+- Adicionado nos logs data e hora para melhor analise.
+- Otimizado a questão de trocar o dia meia noite.
+"""
+__version__ = '4.1.0'
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+
 class MyApp:
     def __init__(self, root):
         self.root = root
         root.iconbitmap(default='ico-botlog.ico')
-        self.root.title("BotLog - CEABS "+__version__)
+        self.root.title("BotLog - CEABS " + __version__)
         self.root.geometry("850x450")
         self.running_flag = False  # Adiciona uma nova variável de controle para o loop
         self.programa_em_execucao = False
@@ -88,7 +99,6 @@ class MyApp:
         # Variável de instância para o botão Executar
         self.button_executar = None
 
-
         self.entry_tipo_jiga = None
         self.jigas = self.loadJigas()
 
@@ -103,15 +113,18 @@ class MyApp:
         config = configparser.ConfigParser()
         config.read('config.ini')
         return dict(config.items('PRODUTO'))
+
     def loadJigas(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
         return dict(config.items('DT-JIGA'))
+
     def iniciar_arquivo_controle(self):
         caminho_arquivo_controle = os.path.join(self.controle_path, 'controlposition.txt')
         if not os.path.exists(caminho_arquivo_controle):
             with open(caminho_arquivo_controle, 'w') as f:
                 f.write('0')
+
     def load_config(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
@@ -122,6 +135,7 @@ class MyApp:
 
         with open('config.ini', 'w') as config_file:
             self.config.write(config_file)
+
     def create_tabs(self):
         # Aba 1: Informações e Controle
         tab_control = ttk.Notebook(self.root)
@@ -161,8 +175,6 @@ class MyApp:
         self.button_executar = tk.Button(tab1, text="Executar", command=self.executar_programa)
         self.button_executar.pack(padx=10, pady=10)
 
-
-
         # Aba 2: Configurações
         label_config = tk.Label(tab2, text="Definir Local Arquivo Gerado pelo Software CEABS")
         label_config.grid(row=0, column=0, pady=10, sticky=tk.W)
@@ -174,11 +186,9 @@ class MyApp:
         self.entry_origem.insert(0, self.origem_path)
         self.entry_origem.grid(row=1, column=1, pady=5, padx=5, sticky=tk.W)
 
-
         # Botão para abrir caixa de diálogo para selecionar novo caminho
         button_selecionar_origem = tk.Button(tab2, text="Local", command=self.selecionar_origem)
         button_selecionar_origem.grid(row=1, column=2, pady=5, padx=5, sticky=tk.W)
-
 
         # Botão para salvar configurações
         button_salvar_config = tk.Button(tab2, text="Salvar Configuração", command=self.salvar_configuracoes)
@@ -202,6 +212,7 @@ class MyApp:
         # Atualiza o caminho do arquivo com base na data atual
         global caminho_arquivo_original
         caminho_arquivo_original = obter_caminho_arquivo_original()
+
     def executar_programa(self):
         self.atualizar_caminho_arquivo()  # Chama a função dentro do contexto da instância
         if caminho_arquivo_original:
@@ -227,6 +238,7 @@ class MyApp:
             messagebox.showerror("Erro",
                                  "O arquivo originado pelo software CEABS não foi encontrado. "
                                  "Certifique-se de que o arquivo tenha sido gerado após os testes.")
+
     def executar_continuamente(self):
         try:
             while self.running_flag:
@@ -241,6 +253,7 @@ class MyApp:
         self.info_text.insert(tk.END, info + "\n\n")
         self.info_text.see(tk.END)
         self.root.update_idletasks()
+
     def salvar_configuracoes(self):
         if os.path.exists(self.origem_path):
             self.adicionar_info("Configurações salvas.")
@@ -255,6 +268,7 @@ class MyApp:
             self.entry_origem.config(state="normal")
             self.entry_origem.delete(0, tk.END)
             self.entry_origem.insert(0, self.origem_path)
+
     #
     # def selecionar_destino(self):
     #     novo_destino = filedialog.askdirectory(title="Selecione a pasta de Logs")
@@ -272,7 +286,6 @@ class MyApp:
         else:
             self.button_executar.config(state="normal")
 
-
     def adicionar_info(self, info):
         self.info_text.insert(tk.END, info + "\n")
         self.info_text.see(tk.END)
@@ -288,6 +301,7 @@ class MyApp:
             self.adicionar_info("Configurações salvas.")
         else:
             messagebox.showerror("Erro", "Um ou mais diretórios especificados não existem.")
+
     def confirmar_salvar_arquivo(self, placa_reprovada):
         """
             SE CASO REPROVAR PERGUNTAR SE QUER SAVAR O LOG
@@ -298,6 +312,8 @@ class MyApp:
             f'Deseja salvar o log de placa reprova: {placa_reprovada}?'
         )
         return self.resposta
+
+
 def obter_ultima_posicao_lida():
     caminho_arquivo_controle = os.path.join(app.controle_path, 'controlposition.txt')
 
@@ -309,26 +325,42 @@ def obter_ultima_posicao_lida():
     except Exception as e:
         print(f"Erro ao obter a última posição lida: {e}")
         return 0
+
+
 def salvar_ultima_posicao_lida(posicao):
     caminho_arquivo_controle = os.path.join(app.controle_path, 'controlposition.txt')
 
     with open(caminho_arquivo_controle, 'w') as f:
         f.write(str(posicao))
+
+
+# Função para obter o caminho do arquivo original (com fallback para o dia anterior)
 def obter_caminho_arquivo_original():
     diretorio_origem = app.origem_path
 
+    # Verifica o arquivo de hoje
     data_atual = datetime.now().strftime('%Y-%m-%d')
-    nome_arquivo_esperado = f'{data_atual}.csv'
+    nome_arquivo_hoje = f'{data_atual}.csv'
+    caminho_arquivo_hoje = os.path.join(diretorio_origem, nome_arquivo_hoje)
 
-    caminho_arquivo = os.path.join(diretorio_origem, nome_arquivo_esperado)
+    # Verifica o arquivo de ontem (caso a data tenha mudado, mas o arquivo de hoje não esteja disponível ainda)
+    data_ontem = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    nome_arquivo_ontem = f'{data_ontem}.csv'
+    caminho_arquivo_ontem = os.path.join(diretorio_origem, nome_arquivo_ontem)
 
-    if os.path.exists(caminho_arquivo):
-        return caminho_arquivo
+    if os.path.exists(caminho_arquivo_hoje):
+        return caminho_arquivo_hoje
+    elif os.path.exists(caminho_arquivo_ontem):
+        return caminho_arquivo_ontem
     else:
         return None
+
+
 def verificar_existencia_arquivo_original():
     caminho_arquivo = obter_caminho_arquivo_original()
     return caminho_arquivo is not None
+
+
 def ler_arquivo_original():
     caminho_arquivo = obter_caminho_arquivo_original()
 
@@ -337,6 +369,8 @@ def ler_arquivo_original():
         return df
     else:
         return None
+
+
 def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
     if ultima_posicao >= len(df):
         return
@@ -570,10 +604,12 @@ def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
     df_novas = df.iloc[ultima_posicao:]
     for _, row in df_novas.iterrows():
         sufixo_arquivo = '_0000'
+        houve_falha = False  # Inicializa como falso (sem falha)
         if tipo_jiga in sufixo_map:
             for status_col, sufixo in sufixo_map[tipo_jiga].items():
                 if status_col in row and row[status_col] not in ['="PASS"']:
                     sufixo_arquivo = sufixo
+                    houve_falha = True
                     break
         valor_serial_number = row['="SERIAL_NUMBER_VALUE"']
         valor_lora_id = row['="LoRa_ID_VALUE"']
@@ -581,33 +617,37 @@ def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
         if valor_serial_number and valor_lora_id and valor_serial_number != '="0"' and valor_lora_id != '="0"':
             numeric_part_serial = ''.join(filter(str.isdigit, valor_serial_number))
             numeric_part_lora = ''.join(filter(str.isdigit, valor_lora_id))
-            caminho_destino = os.path.join(diretorio_destino, f'{int(numeric_part_serial)}ç{int(numeric_part_lora)}{sufixo_arquivo}.txt')
+            caminho_destino = os.path.join(
+                diretorio_destino, f'{int(numeric_part_serial)}ç{int(numeric_part_lora)}{sufixo_arquivo}.txt')
 
-            # verificar se o resultado é diferente de '_0000'
-            if sufixo_arquivo != '_0000':
-                # perguntar se deseja salvar
+            # Adicionar timestamp à mensagem
+            timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+
+            if houve_falha:
                 if app.confirmar_salvar_arquivo(numeric_part_serial):
                     with open(caminho_destino, 'w'):
                         pass
-                    # Adicionar mensagem de informação
-                    mensagem_info = f'Arquivo gerado em: {caminho_destino}'
+                    mensagem_info = f'[{timestamp}] - Arquivo gerado em: {caminho_destino}'
                     app.adicionar_info_e_rolar(mensagem_info)
                 else:
-                    mensagem_info = f'A placa com o número de série {numeric_part_serial} foi reprovada. '\
+                    mensagem_info = f'[{timestamp}] - A placa com o número de série {numeric_part_serial} foi reprovada. ' \
                                     'O log correspondente não foi salvo.'
                     app.adicionar_info_e_rolar(mensagem_info)
             else:
+                # Se não houve falha, gerar o arquivo automaticamente sem perguntar
                 with open(caminho_destino, 'w'):
                     pass
-
-                mensagem_info = f'Arquivo gerado em: {caminho_destino}'
+                mensagem_info = f'[{timestamp}] - Arquivo gerado em: {caminho_destino}'
                 app.adicionar_info_e_rolar(mensagem_info)
 
     salvar_ultima_posicao_lida(len(df))
-    salvar_ultima_posicao_lida(len(df))
     copiar_arquivo_para_jiga(df, diretorio_destino)
+
+
 def copiar_arquivo_para_jiga(df, diretorio_destino):
     caminho_arquivo_original = obter_caminho_arquivo_original()
+    # Adicionar timestamp à mensagem
+    timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
     if caminho_arquivo_original:
         jiga_selecionado = app.entry_tipo_jiga.get()
 
@@ -615,31 +655,37 @@ def copiar_arquivo_para_jiga(df, diretorio_destino):
         try:
             caminho_destino_jiga = app.config.get('DT-JIGA', jiga_selecionado)
         except configparser.NoOptionError:
-            mensagem_erro = f'Caminho para o jiga "{jiga_selecionado}" não encontrado no arquivo de configuração.'
+            mensagem_erro = f'[{timestamp}] - Caminho para o jiga "{jiga_selecionado}" não encontrado no arquivo de configuração.'
             app.adicionar_info_e_rolar(mensagem_erro)
             return
 
         # Verifique se o diretório de destino do jiga existe, se não, crie-o
         if not os.path.exists(caminho_destino_jiga):
-            mensagem_erro = f'Caminho para backup do jiga "{jiga_selecionado}" não encontrado no arquivo de configuração.'
+            mensagem_erro = f'[{timestamp}] - Caminho para backup do jiga "{jiga_selecionado}" não encontrado no arquivo de configuração.'
             app.adicionar_info_e_rolar(mensagem_erro)
 
         # Copie o arquivo original para o diretório do jiga
         try:
             shutil.copy(caminho_arquivo_original, caminho_destino_jiga)
-            mensagem_info = f'Arquivo copiado para: {caminho_destino_jiga}'
+            mensagem_info = f'[{timestamp}] - Arquivo copiado para: {caminho_destino_jiga}'
             app.adicionar_info_e_rolar(mensagem_info)
         except Exception as e:
-            mensagem_erro = f'Erro ao copiar arquivo para o endereço: {e}.'
+            mensagem_erro = f'[{timestamp}] - Erro ao copiar arquivo para o endereço: {e}.'
             app.adicionar_info_e_rolar(mensagem_erro)
+
+
 def limpar_ultima_posicao_lida():
     salvar_ultima_posicao_lida(0)
+
+
 def encerrar_programa(signal, frame):
     resposta = messagebox.askyesno("Encerrar Programa", "Tem certeza que deseja encerrar o programa?")
     if resposta:
         observer.stop()
         observer.join()
         root.destroy()
+
+
 class FileModifiedHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.is_directory:
@@ -648,6 +694,8 @@ class FileModifiedHandler(FileSystemEventHandler):
             print(f'Arquivo {event.src_path} foi modificado. Esperando antes de executar o script...')
             time.sleep(1)
             app.executar_programa()
+
+
 def executar_script():
     if verificar_existencia_arquivo_original():
         df_original = ler_arquivo_original()
@@ -655,6 +703,8 @@ def executar_script():
         if df_original is not None:
             ultima_posicao = obter_ultima_posicao_lida()
             processar_linhas_novas(df_original, ultima_posicao, app.destino_path)
+
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = MyApp(root)
