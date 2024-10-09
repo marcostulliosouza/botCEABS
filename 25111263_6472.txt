@@ -1,0 +1,1 @@
+Serial: 25111263 - Falhou no teste GSM_TEST!

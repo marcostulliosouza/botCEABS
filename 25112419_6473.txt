@@ -1,0 +1,1 @@
+Serial: 25112419 - Falhou no teste GPS_TEST!
