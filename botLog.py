@@ -12,60 +12,44 @@ import threading
 import configparser
 import csv
 import logging
+import json
 
 """
 v 2.0.1
-
 - Separado os logs em função da jiga.
 - Adicionado falhas especifica por jiga.
 - Retirado a opção de produto e deixado opção da dt da jiga
 - Melhorado o desempenho do monitoramento da pasta para verificar se trocou o dia após meia noite
 
-"""
-
-"""
-
 v 2.2.0
-
 - Adicionado novo produto
 - Criado interface para alternar entre produto
 
-"""
-
-"""
-
 v 3.0.0
-
 - Adicionado novas jigas
-
-"""
-
-"""
 
 v 3.0.1
 25/07/24
 - Otimizado o código 
 - Adicionado uma caixa de pergunta para salvar logs de placas reprovadas
 
-"""
-
-"""
-
 v 4.0.0 
 25/07/24
 - Adicionado a jiga 1004
 
-"""
-
-"""
 V4.1.0
 18/09/24
 - Melhorado a lógica para garantir que se a placa não apresenta falha não deve ser gerado
 o questionamento se deseja retestar a plata
 - Adicionado nos logs data e hora para melhor analise.
 - Otimizado a questão de trocar o dia meia noite.
+
+V4.1.0
+07/12/24
+- Otimizado os dados de falha em JSON
+- Compatível para rodar a versão nova do software do cliente
 """
-__version__ = '4.1.0'
+
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -73,8 +57,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', date
 class MyApp:
     def __init__(self, root):
         self.root = root
+        self.version = VERSION
         root.iconbitmap(default='ico-botlog.ico')
-        self.root.title("BotLog - CEABS " + __version__)
+        self.root.title("BotLog - CEABS " + self.version)
         self.root.geometry("850x450")
         self.running_flag = False  # Adiciona uma nova variável de controle para o loop
         self.programa_em_execucao = False
@@ -82,7 +67,7 @@ class MyApp:
         # Configuração dos caminhos pré-definidos
         self.config = self.load_config()
 
-        self.origem_path = self.config.get('Paths', 'source_path', fallback="C:/")
+        self.origem_path = self.config.get('PATH', 'source_path', fallback="C:/")
         self.controle_path = os.path.dirname(os.path.realpath(__file__))
 
         # Inicializar as variáveis para a aba 1
@@ -100,21 +85,21 @@ class MyApp:
         self.button_executar = None
 
         self.entry_tipo_jiga = None
-        self.jigas = self.loadJigas()
+        self.jigas = self.load_jigas()
 
-        self.produtos = self.loadProduto()
+        self.produtos = self.load_produto()
 
         # Criação da interface gráfica
         self.create_tabs()
 
         self.iniciar_arquivo_controle()
 
-    def loadProduto(self):
+    def load_produto(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
         return dict(config.items('PRODUTO'))
 
-    def loadJigas(self):
+    def load_jigas(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
         return dict(config.items('DT-JIGA'))
@@ -131,7 +116,7 @@ class MyApp:
         return config
 
     def save_config(self):
-        self.config.set('Paths', 'source_path', self.origem_path)
+        self.config.set('PATH', 'source_path', self.origem_path)
 
         with open('config.ini', 'w') as config_file:
             self.config.write(config_file)
@@ -216,9 +201,9 @@ class MyApp:
     def executar_programa(self):
         self.atualizar_caminho_arquivo()  # Chama a função dentro do contexto da instância
         if caminho_arquivo_original:
-            if caminho_arquivo_original != self.config.get('Paths', 'last_source_file', fallback=None):
+            if caminho_arquivo_original != self.config.get('PATH', 'last_source_file', fallback=None):
                 limpar_ultima_posicao_lida()
-                self.config.set('Paths', 'last_source_file', caminho_arquivo_original)
+                self.config.set('PATH', 'last_source_file', caminho_arquivo_original)
                 self.save_config()
 
             if not self.programa_em_execucao:
@@ -269,16 +254,6 @@ class MyApp:
             self.entry_origem.delete(0, tk.END)
             self.entry_origem.insert(0, self.origem_path)
 
-    #
-    # def selecionar_destino(self):
-    #     novo_destino = filedialog.askdirectory(title="Selecione a pasta de Logs")
-    #     if novo_destino:
-    #         self.destino_path = novo_destino
-    #         self.adicionar_info("Caminho de logs atualizado.")
-    #         self.entry_destino.config(state="normal")
-    #         self.entry_destino.delete(0, tk.END)
-    #         self.entry_destino.insert(0, self.destino_path)
-
     def atualizar_estado_botoes(self):
         if self.programa_em_execucao:
             self.button_executar.config(state="disabled")
@@ -312,6 +287,9 @@ class MyApp:
             f'Deseja salvar o log de placa reprova: {placa_reprovada}?'
         )
         return self.resposta
+
+
+VERSION = '4.2.0'
 
 
 def obter_ultima_posicao_lida():
@@ -371,242 +349,42 @@ def ler_arquivo_original():
         return None
 
 
+def carregar_sufixos(caminho):
+    with open(caminho, 'r') as f:
+        return json.load(f)
+
+
+def adiciona_caracteres(data):
+    new_data = {}
+    for key, value in data.items():
+        new_key = f"=\"{key}\""  # Adiciona "=" no início e nas aspas
+        if isinstance(value, dict):
+            new_data[new_key] = adiciona_caracteres(value)  # Recursão para casos aninhados
+        else:
+            new_data[new_key] = value
+    return new_data
+
+
 def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
     if ultima_posicao >= len(df):
         return
 
+    # Uso no código
+    sufixos = carregar_sufixos('suffix_mapping.json')
     tipo_jiga = app.entry_tipo_jiga.get()
-    sufixo_map = {
-        '000977': {
-            '="LoRa_ID_STATUS"': '_6144',
-            '="POWER_TEST"': '_6145',
-            '="V3_TEST"': '_6146',
-            '="V4_TEST"': '_6147',
-            '="UART_TEST"': '_6148',
-            '="FIRMWARE_VERSION_TEST"': '_6149',
-            '="GPIO_TEST"': '_6150',
-            '="ADC_TEST"': '_6151',
-            '="G-SENSOR_TEST"': '_6152',
-            '="LoRa_TEST"': '_6153',
-            '="SETUP_DOWNLOAD"': '_6154',
-            '="LoRa_APP_EUI_STATUS"': '_6155',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6156',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6157',
-            '="LoRa_DEV_EUI_STATUS"': '_6158',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6159'
-        },
-        '000978': {
-            '="LoRa_ID_STATUS"': '_6161',
-            '="POWER_TEST"': '_6162',
-            '="V3_TEST"': '_6163',
-            '="V4_TEST"': '_6164',
-            '="UART_TEST"': '_6165',
-            '="FIRMWARE_VERSION_TEST"': '_6166',
-            '="GPIO_TEST"': '_6167',
-            '="ADC_TEST"': '_6168',
-            '="G-SENSOR_TEST"': '_6169',
-            '="LoRa_TEST"': '_6170',
-            '="SETUP_DOWNLOAD"': '_6171',
-            '="LoRa_APP_EUI_STATUS"': '_6172',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6173',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6174',
-            '="LoRa_DEV_EUI_STATUS"': '_6175',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6176'
-        },
-        '000981': {
-            '="LoRa_ID_STATUS"': '_6178',
-            '="POWER_TEST"': '_6179',
-            '="V3_TEST"': '_6180',
-            '="V4_TEST"': '_6181',
-            '="UART_TEST"': '_6182',
-            '="FIRMWARE_VERSION_TEST"': '_6183',
-            '="GPIO_TEST"': '_6184',
-            '="ADC_TEST"': '_6185',
-            '="G-SENSOR_TEST"': '_6186',
-            '="LoRa_TEST"': '_6187',
-            '="SETUP_DOWNLOAD"': '_6188',
-            '="LoRa_APP_EUI_STATUS"': '_6189',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6190',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6191',
-            '="LoRa_DEV_EUI_STATUS"': '_6192',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6193'
-        },
-        '000985': {
-            '="LoRa_ID_STATUS"': '_6195',
-            '="POWER_TEST"': '_6196',
-            '="V3_TEST"': '_6197',
-            '="V4_TEST"': '_6198',
-            '="UART_TEST"': '_6199',
-            '="FIRMWARE_VERSION_TEST"': '_6200',
-            '="GPIO_TEST"': '_6201',
-            '="ADC_TEST"': '_6202',
-            '="G-SENSOR_TEST"': '_6203',
-            '="LoRa_TEST"': '_6204',
-            '="SETUP_DOWNLOAD"': '_6205',
-            '="LoRa_APP_EUI_STATUS"': '_6206',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6207',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6208',
-            '="LoRa_DEV_EUI_STATUS"': '_6209',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6210'
-        },
-        '000986': {
-            '="LoRa_ID_STATUS"': '_6212',
-            '="POWER_TEST"': '_6213',
-            '="V3_TEST"': '_6214',
-            '="V4_TEST"': '_6215',
-            '="UART_TEST"': '_6216',
-            '="FIRMWARE_VERSION_TEST"': '_6217',
-            '="GPIO_TEST"': '_6218',
-            '="ADC_TEST"': '_6219',
-            '="G-SENSOR_TEST"': '_6220',
-            '="LoRa_TEST"': '_6221',
-            '="SETUP_DOWNLOAD"': '_6222',
-            '="LoRa_APP_EUI_STATUS"': '_6223',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6224',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6225',
-            '="LoRa_DEV_EUI_STATUS"': '_6226',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6227'
-        },
-        '000988': {
-            '="LoRa_ID_STATUS"': '_6230',
-            '="POWER_TEST"': '_6231',
-            '="V1_TEST"': '_6232',
-            '="V3_TEST"': '_6233',
-            '="V4_TEST"': '_6234',
-            '="V5_TEST"': '_6235',
-            '="UART_TEST"': '_6236',
-            '="FIRMWARE_VERSION_TEST"': '_6237',
-            '="GPIO_TEST"': '_6238',
-            '="ADC_TEST"': '_6239',
-            '="LoRa_TEST"': '_6240',
-            '="1-WIRE_TEST"': '_6241',
-            '="GSM_TEST"': '_6242',
-            '="GPS_TEST"': '_6243',
-            '="SETUP_DOWNLOAD"': '_6244',
-            '="LoRa_APP_EUI_STATUS"': '_6245',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6246',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6247',
-            '="LoRa_DEV_EUI_STATUS"': '_6248',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6249'
-        },
-        '000989': {
-            '="LoRa_ID_STATUS"': '_6250',
-            '="POWER_TEST"': '_6251',
-            '="V1_TEST"': '_6252',
-            '="V3_TEST"': '_6253',
-            '="V4_TEST"': '_6254',
-            '="V5_TEST"': '_6255',
-            '="UART_TEST"': '_6256',
-            '="FIRMWARE_VERSION_TEST"': '_6257',
-            '="GPIO_TEST"': '_6258',
-            '="ADC_TEST"': '_6259',
-            '="LoRa_TEST"': '_6260',
-            '="1-WIRE_TEST"': '_6261',
-            '="GSM_TEST"': '_6262',
-            '="GPS_TEST"': '_6263',
-            '="SETUP_DOWNLOAD"': '_6264',
-            '="LoRa_APP_EUI_STATUS"': '_6265',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6266',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6267',
-            '="LoRa_DEV_EUI_STATUS"': '_6268',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6269'
-        },
-        '000998': {
-            '="LoRa_ID_STATUS"': '_6379',
-            '="POWER_TEST"': '_6380',
-            '="V1_TEST"': '_6381',
-            '="V3_TEST"': '_6382',
-            '="V4_TEST"': '_6383',
-            '="V5_TEST"': '_6384',
-            '="UART_TEST"': '_6385',
-            '="FIRMWARE_VERSION_TEST"': '_6386',
-            '="GPIO_TEST"': '_6387',
-            '="ADC_TEST"': '_6388',
-            '="LoRa_TEST"': '_6389',
-            '="1-WIRE_TEST"': '_6390',
-            '="GSM_TEST"': '_6391',
-            '="GPS_TEST"': '_6392',
-            '="SETUP_DOWNLOAD"': '_6393',
-            '="LoRa_APP_EUI_STATUS"': '_6394',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6395',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6396',
-            '="LoRa_DEV_EUI_STATUS"': '_6397',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6398'
-        },
-        '001001': {
-            '="LoRa_ID_STATUS"': '_6420',
-            '="POWER_TEST"': '_6421',
-            '="V1_TEST"': '_6422',
-            '="V3_TEST"': '_6423',
-            '="V4_TEST"': '_6424',
-            '="V5_TEST"': '_6425',
-            '="UART_TEST"': '_6426',
-            '="FIRMWARE_VERSION_TEST"': '_6427',
-            '="GPIO_TEST"': '_6428',
-            '="ADC_TEST"': '_6429',
-            '="LoRa_TEST"': '_6430',
-            '="1-WIRE_TEST"': '_6431',
-            '="GSM_TEST"': '_6432',
-            '="GPS_TEST"': '_6433',
-            '="SETUP_DOWNLOAD"': '_6434',
-            '="LoRa_APP_EUI_STATUS"': '_6435',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6436',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6437',
-            '="LoRa_DEV_EUI_STATUS"': '_6438',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6439'
-        },
-        '001002': {
-            '="LoRa_ID_STATUS"': '_6440',
-            '="POWER_TEST"': '_6441',
-            '="V1_TEST"': '_6442',
-            '="V3_TEST"': '_6443',
-            '="V4_TEST"': '_6444',
-            '="V5_TEST"': '_6445',
-            '="UART_TEST"': '_6446',
-            '="FIRMWARE_VERSION_TEST"': '_6447',
-            '="GPIO_TEST"': '_6448',
-            '="ADC_TEST"': '_6449',
-            '="LoRa_TEST"': '_6450',
-            '="1-WIRE_TEST"': '_6451',
-            '="GSM_TEST"': '_6452',
-            '="GPS_TEST"': '_6453',
-            '="SETUP_DOWNLOAD"': '_6454',
-            '="LoRa_APP_EUI_STATUS"': '_6455',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6456',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6457',
-            '="LoRa_DEV_EUI_STATUS"': '_6458',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6459'
-        },
-        '001004': {
-            '="LoRa_ID_STATUS"': '_6460',
-            '="POWER_TEST"': '_6461',
-            '="V1_TEST"': '_6462',
-            '="V3_TEST"': '_6463',
-            '="V4_TEST"': '_6464',
-            '="V5_TEST"': '_6465',
-            '="UART_TEST"': '_6466',
-            '="FIRMWARE_VERSION_TEST"': '_6467',
-            '="GPIO_TEST"': '_6468',
-            '="ADC_TEST"': '_6469',
-            '="LoRa_TEST"': '_6470',
-            '="1-WIRE_TEST"': '_6471',
-            '="GSM_TEST"': '_6472',
-            '="GPS_TEST"': '_6473',
-            '="SETUP_DOWNLOAD"': '_6474',
-            '="LoRa_APP_EUI_STATUS"': '_6475',
-            '="LoRa_APP_SESSION_KEY_STATUS"': '_6476',
-            '="LoRa_DEV_ADDRESS_STATUS"': '_6477',
-            '="LoRa_DEV_EUI_STATUS"': '_6478',
-            '="LoRa_NTWK_SESSION_KEY_STATUS"': '_6479'
-        }
-    }
+
+    sufixo_map = adiciona_caracteres(sufixos)
 
     df_novas = df.iloc[ultima_posicao:]
     for _, row in df_novas.iterrows():
         sufixo_arquivo = '_0000'
         houve_falha = False  # Inicializa como falso (sem falha)
-        if tipo_jiga in sufixo_map:
-            for status_col, sufixo in sufixo_map[tipo_jiga].items():
+        teste = f'="{tipo_jiga}"'
+        print(f"tipo_jiga: {tipo_jiga}")
+        print(f"tipo_jiga: {teste}")
+        print(f"sufixo_map: {sufixo_map}")
+        if f'="{tipo_jiga}"' in sufixo_map:
+            for status_col, sufixo in sufixo_map[f'="{tipo_jiga}"'].items():
                 if status_col in row and row[status_col] not in ['="PASS"']:
                     sufixo_arquivo = sufixo
                     houve_falha = True
@@ -655,13 +433,15 @@ def copiar_arquivo_para_jiga(df, diretorio_destino):
         try:
             caminho_destino_jiga = app.config.get('DT-JIGA', jiga_selecionado)
         except configparser.NoOptionError:
-            mensagem_erro = f'[{timestamp}] - Caminho para o jiga "{jiga_selecionado}" não encontrado no arquivo de configuração.'
+            mensagem_erro = (f'[{timestamp}] - Caminho para o jiga "{jiga_selecionado}" '
+                             f'não encontrado no arquivo de configuração.')
             app.adicionar_info_e_rolar(mensagem_erro)
             return
 
         # Verifique se o diretório de destino do jiga existe, se não, crie-o
         if not os.path.exists(caminho_destino_jiga):
-            mensagem_erro = f'[{timestamp}] - Caminho para backup do jiga "{jiga_selecionado}" não encontrado no arquivo de configuração.'
+            mensagem_erro = (f'[{timestamp}] - Caminho para backup do jiga "{jiga_selecionado}" '
+                             f'não encontrado no arquivo de configuração.')
             app.adicionar_info_e_rolar(mensagem_erro)
 
         # Copie o arquivo original para o diretório do jiga

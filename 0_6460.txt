@@ -1,1 +1,0 @@
-Serial: 0 - Falhou no teste LoRa_ID_STATUS!

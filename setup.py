@@ -1,5 +1,6 @@
 # setup.py
 from cx_Freeze import setup, Executable
+from botLog import VERSION
 
 # Lista de módulos que você está usando no seu script
 modules = ["pandas", "datetime", "os", "time", "watchdog", "tkinter", "threading", "configparser", "csv", "shutil"]
@@ -8,14 +9,14 @@ modules = ["pandas", "datetime", "os", "time", "watchdog", "tkinter", "threading
 packages = ["encodings"]
 
 # Se o seu aplicativo usa arquivos adicionais, especifique-os aqui
-include_files = ["ico-botlog.ico", "config.ini"]
+include_files = ["ico-botlog.ico", "config.ini", "suffix_mapping.json"]
 
 # Configuração do executável
 executables = [Executable("botLog.py", base="Win32GUI")]
 
 setup(
     name="botLog",
-    version="4.1.0",
+    version=VERSION,
     options={
         "build_exe": {
             "packages": modules + packages,
