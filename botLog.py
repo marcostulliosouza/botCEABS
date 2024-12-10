@@ -1,4 +1,5 @@
 import shutil
+from collections import deque
 import pandas as pd
 from datetime import datetime, timedelta
 import os
@@ -60,9 +61,11 @@ class MyApp:
         self.version = VERSION
         root.iconbitmap(default='ico-botlog.ico')
         self.root.title("BotLog - CEABS " + self.version)
-        self.root.geometry("850x450")
+        self.root.geometry("400x450")
         self.running_flag = False  # Adiciona uma nova variável de controle para o loop
         self.programa_em_execucao = False
+        self.alerta_ativo = False  # Indica se uma janela de alerta crítico já está aberta
+        self.fila_alertas = deque()
 
         # Configuração dos caminhos pré-definidos
         self.config = self.load_config()
@@ -122,6 +125,21 @@ class MyApp:
             self.config.write(config_file)
 
     def create_tabs(self):
+        # Menu Superior
+        menu_bar = tk.Menu(self.root)
+
+        # Menu "Arquivo"
+        menu_arquivo = tk.Menu(menu_bar, tearoff=0)
+        menu_arquivo.add_command(label="Exportar Logs de Apontamento", command=self.salvar_info_text_em_txt)
+        menu_arquivo.add_separator()
+        menu_arquivo.add_command(label="Sair", command=self.root.quit)
+        menu_bar.add_cascade(label="Arquivo", menu=menu_arquivo)
+        ajuda_menu = tk.Menu(menu_bar, tearoff=0)
+        ajuda_menu.add_command(label="Sobre", command=self.exibir_sobre)
+        menu_bar.add_cascade(label="Ajuda", menu=ajuda_menu)
+
+        # Configura o menu na janela principal
+        self.root.config(menu=menu_bar)
         # Aba 1: Informações e Controle
         tab_control = ttk.Notebook(self.root)
         tab1 = ttk.Frame(tab_control)
@@ -130,21 +148,21 @@ class MyApp:
         tab_control.add(tab2, text='Configuração')
 
         # Adiciona um widget Combobox para selecionar o tipo de jiga
-        labelComboboxProduto = tk.Label(tab1, text='Produto:')
-        labelComboboxProduto.pack(pady=10)
+        labelComboboxProduto = tk.Label(tab1, text='Produto:', font=("Arial", 12))
+        labelComboboxProduto.pack(pady=5)
 
         produtoDisponivel = [produto for produto in self.produtos.keys()]
-        self.entry_tipo_produto = ttk.Combobox(tab1, values=produtoDisponivel, state="readonly", width=20)
+        self.entry_tipo_produto = ttk.Combobox(tab1, values=produtoDisponivel, state="readonly", width=30)
 
         self.entry_tipo_produto.set(produtoDisponivel[0])
         self.entry_tipo_produto.pack(pady=5)
 
         # Adiciona um widget Combobox para selecionar o tipo de jiga
-        labelComboboxJiga = tk.Label(tab1, text='DT-JIGA:')
-        labelComboboxJiga.pack(pady=10)
+        labelComboboxJiga = tk.Label(tab1, text='DT-JIGA:', font=("Arial", 12))
+        labelComboboxJiga.pack(pady=5)
 
         jigaDisponivel = [jiga for jiga in self.jigas.keys()]
-        self.entry_tipo_jiga = ttk.Combobox(tab1, values=jigaDisponivel, state="readonly", width=20)
+        self.entry_tipo_jiga = ttk.Combobox(tab1, values=jigaDisponivel, state="readonly", width=30)
 
         self.entry_tipo_jiga.set(jigaDisponivel[0])
         self.entry_tipo_jiga.pack(pady=5)
@@ -154,36 +172,150 @@ class MyApp:
         label_info.pack(pady=10)
 
         # Adiciona um widget Text para exibir informações
-        self.info_text = tk.Text(tab1, height=10, width=100)
+        self.info_text = tk.Text(tab1, height=10, width=45, bg="white", fg="#333")
         self.info_text.pack(pady=10)
 
-        self.button_executar = tk.Button(tab1, text="Executar", command=self.executar_programa)
-        self.button_executar.pack(padx=10, pady=10)
+        self.button_executar = tk.Button(tab1, text="Executar", command=self.executar_programa, bg="blue2", fg="white", font=("Arial", 12))
+        self.button_executar.pack(pady=10)
 
         # Aba 2: Configurações
-        label_config = tk.Label(tab2, text="Definir Local Arquivo Gerado pelo Software CEABS")
-        label_config.grid(row=0, column=0, pady=10, sticky=tk.W)
-        label_origem = tk.Label(tab2, text='Pasta CEABS: ')
-        label_origem.grid(row=1, column=0, pady=10, sticky=tk.W)
+        label_config = tk.Label(tab2, text="Definir Local Arquivo Gerado pelo Software CEABS", font=("Arial", 12))
+        label_config.grid(row=0, column=0, columnspan=2, pady=10, sticky=tk.W)
+        label_origem = tk.Label(tab2, text='Pasta CEABS: ', font=("Arial", 10))
+        label_origem.grid(row=1, column=0, pady=5, sticky=tk.W)
 
         # Adicionando campos de entrada para configurar os caminhos
-        self.entry_origem = tk.Entry(tab2, width=40)
+        self.entry_origem = tk.Entry(tab2, width=50)
         self.entry_origem.insert(0, self.origem_path)
-        self.entry_origem.grid(row=1, column=1, pady=5, padx=5, sticky=tk.W)
+        self.entry_origem.grid(row=2, column=0, pady=5, padx=5)
 
         # Botão para abrir caixa de diálogo para selecionar novo caminho
-        button_selecionar_origem = tk.Button(tab2, text="Local", command=self.selecionar_origem)
-        button_selecionar_origem.grid(row=1, column=2, pady=5, padx=5, sticky=tk.W)
+        button_selecionar_origem = tk.Button(tab2, text="Selecionar", command=self.selecionar_origem)
+        button_selecionar_origem.grid(row=2, column=1, pady=5, padx=5)
 
         # Botão para salvar configurações
-        button_salvar_config = tk.Button(tab2, text="Salvar Configuração", command=self.salvar_configuracoes)
-        button_salvar_config.grid(row=5, column=1, pady=10, sticky=tk.W)
+        button_salvar_config = tk.Button(tab2, text="Salvar Configuração", command=self.salvar_configuracoes, bg="dark green", fg="white")
+        button_salvar_config.grid(row=3, column=0, pady=10)
 
         # Adiciona as abas à janela
         tab_control.pack(expand=1, fill="both")
 
         # Atualiza o destino_path quando um novo produto é selecionado
         self.entry_tipo_produto.bind("<<ComboboxSelected>>", self.atualizar_destino_path)
+
+    def exibir_sobre(self):
+        """Exibe a janela com informações sobre o aplicativo."""
+        sobre_window = tk.Toplevel(self.root)
+        sobre_window.title("Sobre")
+        sobre_window.geometry("400x200")
+        # sobre_window.config(bg="lightgray")
+
+        # Mensagem de Sobre
+        mensagem_sobre = f"""Este é um aplicativo para apontamento \nautomático CEABS.\n\nDesenvolvido em Python por Marcos Tullio.\n\nVersão {self.version}"""
+
+        label_sobre = tk.Label(sobre_window, text=mensagem_sobre, font=("Arial", 10), justify=tk.CENTER)
+        label_sobre.pack(pady=20)
+
+        # Botão para fechar a janela "Sobre"
+        botao_fechar = tk.Button(sobre_window, text="Fechar", command=sobre_window.destroy, bg="blue", fg="white")
+        botao_fechar.pack(pady=10)
+
+    def salvar_info_text_em_txt(self):
+        """Salva o conteúdo do widget Text em um arquivo .txt escolhido pelo usuário."""
+        try:
+            # Obtém o conteúdo do widget Text
+            conteudo = self.info_text.get("1.0", tk.END).strip()
+
+            # Verifica se há conteúdo para salvar
+            if not conteudo:
+                print("O widget Text está vazio. Nada para salvar.")
+                self.adicionar_info_e_rolar("O widget Text está vazio. Nada para salvar.", "yellow",
+                                            "black")
+                return
+
+            # Abre a caixa de diálogo para escolher o local e nome do arquivo
+            caminho_destino = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")])
+
+            if not caminho_destino:  # Verifica se o usuário cancelou a seleção
+                print("Operação de salvamento cancelada.")
+                self.adicionar_info_e_rolar("Operação de salvamento cancelada.", "yellow", "black")
+                return
+
+            # Salva o conteúdo no arquivo especificado
+            with open(caminho_destino, "w", encoding="utf-8") as arquivo:
+                arquivo.write(conteudo)
+
+            # Confirmação de salvamento
+            print(f"Conteúdo salvo com sucesso em: {caminho_destino}")
+            self.adicionar_info_e_rolar(f"Conteúdo salvo em {caminho_destino}.")
+
+        except Exception as e:
+            print(f"Erro ao salvar o conteúdo: {e}")
+            self.adicionar_info_e_rolar(f"Erro ao salvar o conteúdo: {e}", "yellow", "black")
+
+    def alerta_critico(self, mensagem, caminho_destino):
+        """Exibe uma janela de alerta crítica em vermelho."""
+        if self.alerta_ativo:
+            # Se já há um alerta ativo, adiciona o novo à fila
+            self.fila_alertas.append((mensagem, caminho_destino))
+            return
+        self.alerta_ativo = True
+        alerta = tk.Toplevel(self.root)
+        alerta.title("Alerta Crítico!")
+        alerta.geometry("450x150")
+        alerta.config(bg="red3")
+        alerta.attributes("-topmost", True)  # Garante que o alerta estará em primeiro plano
+
+        mensagem_label = tk.Label(alerta, text=mensagem, bg="red3", fg="white", font=("Arial", 14, "bold"))
+        mensagem_label.pack(pady=20)
+
+        # Frame para os botões
+        botoes_frame = tk.Frame(alerta, bg="red3")
+        botoes_frame.pack(pady=10)
+
+        botao_gerar = tk.Button(botoes_frame, text="Gerar Log Reprovado",
+                                command=lambda: self.gerar_log(alerta, caminho_destino),
+                                bg="white", fg="red", font=("Arial", 12))
+        botao_gerar.pack(side="left", padx=10)
+
+        botao_cancelar = tk.Button(botoes_frame, text="Cancelar", bg="white", fg="black", font=("Arial", 12),
+                                   command=lambda: self.cancelar_acao(alerta))
+        botao_cancelar.pack(side="left", padx=10)
+
+        # Liga o evento de fechamento da janela à mesma função de "Cancelar"
+        alerta.protocol("WM_DELETE_WINDOW", lambda: self.cancelar_acao(alerta))
+
+    def gerar_log(self, alerta, caminho_destino):
+        """Gera o log de falha e exibe a mensagem correspondente."""
+        try:
+            with open(caminho_destino, 'w') as file:
+                file.write("Log de reprovação gerado automaticamente.\n")
+            timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+            mensagem_info = f'[{timestamp}] - Log gerado em: {caminho_destino}'
+            self.adicionar_info_e_rolar(mensagem_info, "red", "white")
+            self.encerrar_alerta(alerta)
+        except Exception as e:
+            mensagem_info = f'Erro ao gerar o log: {e}'
+            self.adicionar_info_e_rolar(mensagem_info, "yellow", "black")
+        finally:
+            alerta.destroy()
+
+    def cancelar_acao(self, alerta):
+        """Fecha o alerta crítico sem salvar o log."""
+        timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        mensagem_info = f'[{timestamp}] - Ação cancelada. Log não foi gerado.'
+        self.adicionar_info_e_rolar(mensagem_info, "yellow", "black")
+        self.encerrar_alerta(alerta)
+        alerta.destroy()
+
+    def encerrar_alerta(self, alerta):
+        """Fecha o alerta atual e verifica se há outros na fila."""
+        alerta.destroy()
+        self.alerta_ativo = False
+        if self.fila_alertas:
+            # Exibe o próximo alerta na fila
+            proximo_mensagem, proximo_caminho = self.fila_alertas.popleft()
+            self.alerta_critico(proximo_mensagem, proximo_caminho)
 
     def atualizar_destino_path(self, event):
         produto_selecionado = self.entry_tipo_produto.get()
@@ -227,15 +359,37 @@ class MyApp:
     def executar_continuamente(self):
         try:
             while self.running_flag:
-                executar_script()
+                executar_script(self)
                 time.sleep(1)
         finally:
             # Após o término da execução, atualize o estado dos botões
             self.programa_em_execucao = False
             self.atualizar_estado_botoes()
 
-    def adicionar_info_e_rolar(self, info):
-        self.info_text.insert(tk.END, info + "\n\n")
+    def adicionar_info_e_rolar(self, info, bg="white", fg="black"):
+        """
+        Adiciona informações ao campo de texto e rola até o final, estilizando apenas a linha adicionada.
+
+        Parâmetros:
+        - info (str): Mensagem a ser adicionada.
+        - bg (str): Cor de fundo da mensagem.
+        - fg (str): Cor do texto da mensagem.
+        """
+        # Gerar uma tag única para esta mensagem
+        tag_name = f"tag_{len(self.info_text.get('1.0', tk.END).splitlines())}"
+
+        # Configurar estilo para a tag
+        self.info_text.tag_configure(tag_name, background=bg, foreground=fg, wrap="word")
+
+        # Inserir a mensagem e aplicar a tag apenas a ela
+        start_index = self.info_text.index(tk.END)  # Posição inicial antes da inserção
+        self.info_text.insert(tk.END, "---------------------------------------------")
+        self.info_text.insert(tk.END,"\n" + info + "\n")
+        self.info_text.insert(tk.END,"---------------------------------------------")
+        end_index = self.info_text.index(tk.END)  # Posição final após a inserção
+        self.info_text.tag_add(tag_name, start_index, end_index)  # Aplicar a tag à mensagem
+
+        # Rolar até o final
         self.info_text.see(tk.END)
         self.root.update_idletasks()
 
@@ -276,17 +430,6 @@ class MyApp:
             self.adicionar_info("Configurações salvas.")
         else:
             messagebox.showerror("Erro", "Um ou mais diretórios especificados não existem.")
-
-    def confirmar_salvar_arquivo(self, placa_reprovada):
-        """
-            SE CASO REPROVAR PERGUNTAR SE QUER SAVAR O LOG
-            TULLIO - 23/07/2024
-        """
-        self.resposta = messagebox.askyesno(
-            'Placa Reprovada',
-            f'Deseja salvar o log de placa reprova: {placa_reprovada}?'
-        )
-        return self.resposta
 
 
 VERSION = '4.2.0'
@@ -365,7 +508,7 @@ def adiciona_caracteres(data):
     return new_data
 
 
-def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
+def processar_linhas_novas(self, df, ultima_posicao, diretorio_destino):
     if ultima_posicao >= len(df):
         return
 
@@ -380,9 +523,6 @@ def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
         sufixo_arquivo = '_0000'
         houve_falha = False  # Inicializa como falso (sem falha)
         teste = f'="{tipo_jiga}"'
-        print(f"tipo_jiga: {tipo_jiga}")
-        print(f"tipo_jiga: {teste}")
-        print(f"sufixo_map: {sufixo_map}")
         if f'="{tipo_jiga}"' in sufixo_map:
             for status_col, sufixo in sufixo_map[f'="{tipo_jiga}"'].items():
                 if status_col in row and row[status_col] not in ['="PASS"']:
@@ -400,23 +540,16 @@ def processar_linhas_novas(df, ultima_posicao, diretorio_destino):
 
             # Adicionar timestamp à mensagem
             timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
-
             if houve_falha:
-                if app.confirmar_salvar_arquivo(numeric_part_serial):
-                    with open(caminho_destino, 'w'):
-                        pass
-                    mensagem_info = f'[{timestamp}] - Arquivo gerado em: {caminho_destino}'
-                    app.adicionar_info_e_rolar(mensagem_info)
-                else:
-                    mensagem_info = f'[{timestamp}] - A placa com o número de série {numeric_part_serial} foi reprovada. ' \
-                                    'O log correspondente não foi salvo.'
-                    app.adicionar_info_e_rolar(mensagem_info)
+                mensagem = (f"Placa: {numeric_part_serial} foi reprovada.\n"
+                            "Deseja gerar log de reprovação?")
+                self.alerta_critico(mensagem, caminho_destino)
             else:
-                # Se não houve falha, gerar o arquivo automaticamente sem perguntar
-                with open(caminho_destino, 'w'):
-                    pass
+                # Gerar automaticamente para casos aprovados
+                with open(caminho_destino, 'w') as file:
+                    file.write("Placa aprovada com sucesso.\n")
                 mensagem_info = f'[{timestamp}] - Arquivo gerado em: {caminho_destino}'
-                app.adicionar_info_e_rolar(mensagem_info)
+                self.adicionar_info_e_rolar(mensagem_info, "light sky blue", "black")
 
     salvar_ultima_posicao_lida(len(df))
     copiar_arquivo_para_jiga(df, diretorio_destino)
@@ -435,23 +568,23 @@ def copiar_arquivo_para_jiga(df, diretorio_destino):
         except configparser.NoOptionError:
             mensagem_erro = (f'[{timestamp}] - Caminho para o jiga "{jiga_selecionado}" '
                              f'não encontrado no arquivo de configuração.')
-            app.adicionar_info_e_rolar(mensagem_erro)
+            app.adicionar_info_e_rolar(mensagem_erro, "yellow", "black")
             return
 
         # Verifique se o diretório de destino do jiga existe, se não, crie-o
         if not os.path.exists(caminho_destino_jiga):
             mensagem_erro = (f'[{timestamp}] - Caminho para backup do jiga "{jiga_selecionado}" '
                              f'não encontrado no arquivo de configuração.')
-            app.adicionar_info_e_rolar(mensagem_erro)
+            app.adicionar_info_e_rolar(mensagem_erro, "yellow", "black")
 
         # Copie o arquivo original para o diretório do jiga
         try:
             shutil.copy(caminho_arquivo_original, caminho_destino_jiga)
             mensagem_info = f'[{timestamp}] - Arquivo copiado para: {caminho_destino_jiga}'
-            app.adicionar_info_e_rolar(mensagem_info)
+            app.adicionar_info_e_rolar(mensagem_info, "light grey", "black")
         except Exception as e:
             mensagem_erro = f'[{timestamp}] - Erro ao copiar arquivo para o endereço: {e}.'
-            app.adicionar_info_e_rolar(mensagem_erro)
+            app.adicionar_info_e_rolar(mensagem_erro, "yellow", "black")
 
 
 def limpar_ultima_posicao_lida():
@@ -476,13 +609,13 @@ class FileModifiedHandler(FileSystemEventHandler):
             app.executar_programa()
 
 
-def executar_script():
+def executar_script(self):
     if verificar_existencia_arquivo_original():
         df_original = ler_arquivo_original()
 
         if df_original is not None:
             ultima_posicao = obter_ultima_posicao_lida()
-            processar_linhas_novas(df_original, ultima_posicao, app.destino_path)
+            processar_linhas_novas(self, df_original, ultima_posicao, app.destino_path)
 
 
 if __name__ == "__main__":
