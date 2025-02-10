@@ -512,34 +512,44 @@ def processar_linhas_novas(self, df, ultima_posicao, diretorio_destino):
     if ultima_posicao >= len(df):
         return
 
-    # Uso no código
+    # Carregar o mapeamento de sufixos e o tipo de jiga
     sufixos = carregar_sufixos('suffix_mapping.json')
     tipo_jiga = app.entry_tipo_jiga.get()
-
     sufixo_map = adiciona_caracteres(sufixos)
 
+    # Processar as linhas novas a partir da última posição lida
     df_novas = df.iloc[ultima_posicao:]
     for _, row in df_novas.iterrows():
         sufixo_arquivo = '_0000'
         houve_falha = False  # Inicializa como falso (sem falha)
-        teste = f'="{tipo_jiga}"'
-        if f'="{tipo_jiga}"' in sufixo_map:
-            for status_col, sufixo in sufixo_map[f'="{tipo_jiga}"'].items():
-                if status_col in row and row[status_col] not in ['="PASS"']:
+
+        # Verificar se há falha com base no tipo_jiga
+        tipo_jiga_key = f'="{tipo_jiga}"'
+        if tipo_jiga_key in sufixo_map:
+            for status_col, sufixo in sufixo_map[tipo_jiga_key].items():
+                if status_col in row and row[status_col] != '="PASS"':
                     sufixo_arquivo = sufixo
                     houve_falha = True
-                    break
-        valor_serial_number = row['="SERIAL_NUMBER_VALUE"']
-        valor_lora_id = row['="LoRa_ID_VALUE"']
+                    break  # Interrompe ao encontrar a primeira falha
 
+        # Recuperar valores das colunas relevantes
+        valor_serial_number = row.get('="SERIAL_NUMBER_VALUE"', None)
+        valor_lora_id = row.get('="LoRa_ID_VALUE"', None)
+
+        # Verificar se os valores de serial e LoRa são válidos
         if valor_serial_number and valor_lora_id and valor_serial_number != '="0"' and valor_lora_id != '="0"':
             numeric_part_serial = ''.join(filter(str.isdigit, valor_serial_number))
             numeric_part_lora = ''.join(filter(str.isdigit, valor_lora_id))
+
+            # Montar o caminho do arquivo de destino
             caminho_destino = os.path.join(
-                diretorio_destino, f'{int(numeric_part_serial)}ç{int(numeric_part_lora)}{sufixo_arquivo}.txt')
+                diretorio_destino, f'{int(numeric_part_serial)}ç{int(numeric_part_lora)}{sufixo_arquivo}.txt'
+            )
 
             # Adicionar timestamp à mensagem
             timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+
+            # Caso tenha havido falha, mostrar alerta crítico
             if houve_falha:
                 mensagem = (f"Placa: {numeric_part_serial} foi reprovada.\n"
                             "Deseja gerar log de reprovação?")
@@ -551,8 +561,10 @@ def processar_linhas_novas(self, df, ultima_posicao, diretorio_destino):
                 mensagem_info = f'[{timestamp}] - Arquivo gerado em: {caminho_destino}'
                 self.adicionar_info_e_rolar(mensagem_info, "light sky blue", "black")
 
+    # Atualizar a última posição lida e copiar o arquivo para a jiga
     salvar_ultima_posicao_lida(len(df))
     copiar_arquivo_para_jiga(df, diretorio_destino)
+
 
 
 def copiar_arquivo_para_jiga(df, diretorio_destino):
@@ -605,7 +617,7 @@ class FileModifiedHandler(FileSystemEventHandler):
             return
         elif event.event_type == 'modified':
             print(f'Arquivo {event.src_path} foi modificado. Esperando antes de executar o script...')
-            time.sleep(1)
+            time.sleep(10)
             app.executar_programa()
 
 
