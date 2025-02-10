@@ -668,7 +668,7 @@ if __name__ == "__main__":
     app = MyApp(root)
 
     observer = Observer()
-    event_handler = FileModifiedHandler(app, intervalo_estabilidade=30, timeout_maximo=120)
+    event_handler = FileModifiedHandler(app, intervalo_estabilidade=30, timeout_maximo=120) #melhorado
 
     observer.schedule(event_handler, path=app.origem_path, recursive=False)
     observer.start()
