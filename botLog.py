@@ -51,7 +51,7 @@ V4.1.0
 - Compatível para rodar a versão nova do software do cliente
 """
 """""
-V4.3.0
+V4.4.0
 10/02/25
 - Adicionado delay de 10s antes de gerar o log de aprovado ou reprovado.
 """
@@ -437,7 +437,7 @@ class MyApp:
             messagebox.showerror("Erro", "Um ou mais diretórios especificados não existem.")
 
 
-VERSION = '4.3.0'
+VERSION = '4.4.0'
 
 
 def obter_ultima_posicao_lida():
@@ -617,14 +617,31 @@ def encerrar_programa(signal, frame):
 
 
 class FileModifiedHandler(FileSystemEventHandler):
+    def __init__(self, app, intervalo_estabilidade=10):
+        self.app = app
+        self.intervalo_estabilidade = intervalo_estabilidade
+        self.ultima_modificacao = None
+
     def on_modified(self, event):
         if event.is_directory:
             return
         elif event.event_type == 'modified':
-            print(f'Arquivo {event.src_path} foi modificado. Esperando antes de executar o script...')
-            time.sleep(10)
-            app.executar_programa()
+            print(f'Arquivo {event.src_path} foi modificado. Verificando estabilidade...')
+            self.ultima_modificacao = time.time()  # Registra o momento da última modificação
 
+            # Inicia uma thread para verificar a estabilidade após o intervalo
+            threading.Thread(target=self.verificar_estabilidade, args=(event.src_path,)).start()
+
+    def verificar_estabilidade(self, caminho_arquivo):
+        """
+        Verifica se o arquivo permanece inalterado por um intervalo de tempo.
+        """
+        while True:
+            time.sleep(self.intervalo_estabilidade)  # Aguarda o intervalo de estabilidade
+            if self.ultima_modificacao and (time.time() - self.ultima_modificacao >= self.intervalo_estabilidade):
+                print(f'Arquivo {caminho_arquivo} está estável. Processando...')
+                self.app.executar_programa()
+                break  # Sai do loop após processar o arquivo
 
 def executar_script(self):
     if verificar_existencia_arquivo_original():
@@ -640,7 +657,7 @@ if __name__ == "__main__":
     app = MyApp(root)
 
     observer = Observer()
-    event_handler = FileModifiedHandler()
+    event_handler = FileModifiedHandler(app, intervalo_estabilidade=10)
 
     observer.schedule(event_handler, path=app.origem_path, recursive=False)
     observer.start()
