@@ -617,10 +617,12 @@ def encerrar_programa(signal, frame):
 
 
 class FileModifiedHandler(FileSystemEventHandler):
-    def __init__(self, app, intervalo_estabilidade=10):
+    def __init__(self, app, intervalo_estabilidade=10, timeout_maximo=60):
         self.app = app
         self.intervalo_estabilidade = intervalo_estabilidade
+        self.timeout_maximo = timeout_maximo
         self.ultima_modificacao = None
+        self.thread_verificacao = None
 
     def on_modified(self, event):
         if event.is_directory:
@@ -630,18 +632,27 @@ class FileModifiedHandler(FileSystemEventHandler):
             self.ultima_modificacao = time.time()  # Registra o momento da última modificação
 
             # Inicia uma thread para verificar a estabilidade após o intervalo
-            threading.Thread(target=self.verificar_estabilidade, args=(event.src_path,)).start()
+            if self.thread_verificacao is None or not self.thread_verificacao.is_alive():
+                self.thread_verificacao = threading.Thread(
+                    target=self.verificar_estabilidade,
+                    args=(event.src_path,),
+                    daemon=True
+                )
+                self.thread_verificacao.start()
 
     def verificar_estabilidade(self, caminho_arquivo):
         """
         Verifica se o arquivo permanece inalterado por um intervalo de tempo.
         """
-        while True:
-            time.sleep(self.intervalo_estabilidade)  # Aguarda o intervalo de estabilidade
+        start_time = time.time()
+        while time.time() - start_time < self.timeout_maximo:
             if self.ultima_modificacao and (time.time() - self.ultima_modificacao >= self.intervalo_estabilidade):
                 print(f'Arquivo {caminho_arquivo} está estável. Processando...')
                 self.app.executar_programa()
                 break  # Sai do loop após processar o arquivo
+            time.sleep(1)  # Verifica a cada 1 segundo
+        else:
+            print(f"Timeout: Arquivo {caminho_arquivo} não se tornou estável após {self.timeout_maximo} segundos.")
 
 def executar_script(self):
     if verificar_existencia_arquivo_original():
@@ -657,7 +668,7 @@ if __name__ == "__main__":
     app = MyApp(root)
 
     observer = Observer()
-    event_handler = FileModifiedHandler(app, intervalo_estabilidade=10)
+    event_handler = FileModifiedHandler(app, intervalo_estabilidade=30, timeout_maximo=120)
 
     observer.schedule(event_handler, path=app.origem_path, recursive=False)
     observer.start()
