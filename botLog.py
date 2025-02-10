@@ -50,6 +50,11 @@ V4.1.0
 - Otimizado os dados de falha em JSON
 - Compatível para rodar a versão nova do software do cliente
 """
+"""""
+V4.3.0
+10/02/25
+- Adicionado delay de 10s antes de gerar o log de aprovado ou reprovado.
+"""
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -432,7 +437,7 @@ class MyApp:
             messagebox.showerror("Erro", "Um ou mais diretórios especificados não existem.")
 
 
-VERSION = '4.2.0'
+VERSION = '4.3.0'
 
 
 def obter_ultima_posicao_lida():
